@@ -22,39 +22,42 @@ tar_extract node['apache-storm']['storm']['url'] do
   # not_if { ::File.exists?("#{node['apache-storm']['storm']['dir']}/RELEASE") }
 end
 
-cookbook_file "#{node['apache-storm']['storm']['dir']}/conf/storm.yaml" do
-  source 'storm.yaml'
+template "#{node['apache-storm']['storm']['dir']}/conf/storm.yaml" do
+  source 'storm.yaml.erb'
   owner node['apache-storm']['storm']['user']
   group node['apache-storm']['storm']['group']
   mode '0644'
-  action :create
+  variables(
+    :storm_home => node['apache-storm']['storm']['dir'],
+  )
   notifies :restart, 'service[storm-worker]', :delayed
 end
 
-cookbook_file "#{node['apache-storm']['storm']['dir']}/conf/storm_env.ini" do
-  source 'storm_env.ini'
+template "#{node['apache-storm']['storm']['dir']}/conf/storm_env.ini" do
+  source 'storm_env.ini.erb'
   owner node['apache-storm']['storm']['user']
   group node['apache-storm']['storm']['group']
   mode '0644'
-  action :create
   notifies :restart, 'service[storm-worker]', :delayed
 end
 
-cookbook_file "#{node['apache-storm']['storm']['dir']}/logback/cluster.xml" do
-  source 'cluster.xml'
+template "#{node['apache-storm']['storm']['dir']}/logback/cluster.xml" do
+  source 'cluster.xml.erb'
   owner node['apache-storm']['storm']['user']
   group node['apache-storm']['storm']['group']
   mode '0644'
-  action :create
   notifies :restart, 'service[storm-worker]', :delayed
 end
 
-cookbook_file '/etc/rc.d/init.d/storm-worker' do
-  content 'storm-worker'
+template '/etc/rc.d/init.d/storm-worker' do
+  source 'storm-worker.erb'
   owner 'root'
   group 'root'
   mode '0755'
-  action :create
+  variables(
+    :storm_home => node['apache-storm']['storm']['dir'],
+    :storm_user => node['apache-storm']['storm']['user']
+  )
   notifies :restart, 'service[storm-worker]', :delayed
 end
 
@@ -74,4 +77,5 @@ end
 
 service "storm-worker" do
   action :start
+  supports :status => true, :start => true, :stop => true, :restart => true
 end
